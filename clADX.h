@@ -1,89 +1,59 @@
 #pragma once
 
 //--------------------------------------------------
-// ADXƒNƒ‰ƒX
+// include
+//--------------------------------------------------
+#include <stdio.h>
+
+//--------------------------------------------------
+// ADX class
 //--------------------------------------------------
 class clADX{
 public:
-	clADX(unsigned long long int ciphKeyEx=0,unsigned long long int ciphKey=0,const char *keyword=nullptr);
+	clADX();
 	~clADX();
 
-	// ADXƒ`ƒFƒbƒN
-	static bool CheckFile(void *data,unsigned int size);
+	// check
+	static bool CheckFile(void *data);
 
-	// ƒfƒR[ƒh‚µ‚ÄWAVEƒtƒ@ƒCƒ‹‚É•Û‘¶
-	bool DecodeToWavefile(const char *filenameADX,const char *filenameWAV,int mode=16,int loop=0);
-	bool DecodeToWavefileStream(void *fpADX,const char *filenameWAV,int mode=16,int loop=0);
-
-	// ƒwƒbƒ_î•ñ‚ðƒRƒ“ƒ\[ƒ‹o—Í
-	bool PrintInfo(const char *filenameADX);
-
-	// •œ†‰»
-	bool Decrypt(const char *filenameADX);
-
-	// “ÁŽêŒ®‰ðÍ
-	bool AnalyzeKey(const char *filenameADX,const char *filenameTXT,int analyzeKeyLevel=1);
-
-	// “ÁŽêŒ®‚É•ÏŠ·
-	bool ToCiphKeyEx(const char *keyword,unsigned long long int *ciphKeyEx);
-	bool ToCiphKeyEx(unsigned long long int ciphKey,unsigned long long int *ciphKeyEx);
+	// decode
+	bool Decode(const char *filename,const char *filenameWAV);
+	bool Decode(FILE *fp,void *data,int size,unsigned int address);
 
 private:
-	__declspec(align(4)) struct stHeader{
-		unsigned short adx;
-		unsigned short copyrightOffset;
-		unsigned char encodeType;
-		unsigned char blockSize;
-		unsigned char sampleBitdepth;
-		unsigned char channelCount;
-		unsigned int samplingRate;
-		unsigned int totalSamples;
-		unsigned short highpassFrequency;
-		unsigned char version;
-		unsigned char encryptionFlag;
-	}_header;
-	__declspec(align(4)) struct stInfo3{
-		unsigned int unknown;
-		unsigned int loopFlag;
-		unsigned int loopStartSampleIndex;
-		unsigned int loopStartByteIndex;
-		unsigned int loopEndSampleIndex;
-		unsigned int loopEndByteIndex;
-	}_info3;
-	__declspec(align(4)) struct stInfo4{
-		unsigned int unknown[4];
-		unsigned int loopFlag;
-		unsigned int loopStartSampleIndex;
-		unsigned int loopStartByteIndex;
-		unsigned int loopEndSampleIndex;
-		unsigned int loopEndByteIndex;
-	}_info4;
-	class clCipher{
-	public:
-		clCipher();
-		bool Init(int type,unsigned short start,unsigned short mult,unsigned short add,const char *ketword=nullptr,unsigned long long int key=0);
-		unsigned long long int GetKeyEx(void);
-		unsigned int GetKey(void);
-		void UpdateKey(void);
-	private:
-		unsigned int _type,_start,_mult,_add,_and;
-		void Init0(void);
-		void Init8(const char *ketword);
-		void Init9(unsigned long long int key);
-	}_cipher;
-	unsigned short _start,_mult,_add;
-	unsigned long long int _ciph_key;
-	char *_ciph_keyword;
-	double _coef1,_coef2;
-	double _hist1[0x10],_hist2[0x10];
-	double _wave[0x10][32];
-	bool DecodeHeader(void *data,unsigned int size);
-	bool DecodeBlock(void *data,unsigned int size,unsigned int channel);
-	bool DecodeToWavefile_Decode(void *fp1,void *fp2,unsigned int address,unsigned int count,void *modeFunction);
-	static void DecodeToWavefile_DecodeModeFloat(double f,void *fp);
-	static void DecodeToWavefile_DecodeModeDouble(double f,void *fp);
-	static void DecodeToWavefile_DecodeMode8bit(double f,void *fp);
-	static void DecodeToWavefile_DecodeMode16bit(double f,void *fp);
-	static void DecodeToWavefile_DecodeMode24bit(double f,void *fp);
-	static void DecodeToWavefile_DecodeMode32bit(double f,void *fp);
+	struct stHeader{
+		unsigned short signature;    // signature 0x8000
+		unsigned short dataOffset;   // Data offset(header size) - 4
+		unsigned char r04;           // version? 3
+		unsigned char r05;           // block sizeï¼Ÿ 18
+		unsigned char r06;           // ï¼Ÿ 4
+		unsigned char channelCount;  // number of channels
+		unsigned int samplingRate;   // sampling rate
+		unsigned int sampleCount;    // total number of samples
+		unsigned char r10;
+		unsigned char r11;
+		unsigned char r12;
+		unsigned char r13;
+		unsigned int r14;
+		unsigned short r18;
+		unsigned short r1A;
+		unsigned short r1C;
+		unsigned short r1E;
+	};
+	struct stInfo{//channel Count >= 3 (channelCount-2) back to existence
+		unsigned short r00;
+		unsigned short r02;
+	};
+	struct stAINF{
+		unsigned int ainf;// 'AINF'
+		unsigned int r04;
+		unsigned char r08[0x10];
+		unsigned short r18;
+		unsigned short r1A;
+		unsigned short r1C;
+		unsigned short r1E;
+	};
+	stHeader _header;
+	int *_data;
+	static void Decode(int *d,unsigned char *s);
 };
